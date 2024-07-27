@@ -33,7 +33,7 @@ class MainActivity : ComponentActivity() {
         rvBoard.setHasFixedSize(true)
         rvBoard.layoutManager = GridLayoutManager(this, 2)
 
-    rvBoard.isActivated = true
+
 
     }
 }
