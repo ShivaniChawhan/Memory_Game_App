@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:app="http://schemas.android.com/apk/res-auto" xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <item android:title="Refresh" android:layout_width="wrap_content" android:layout_height="wrap_content"
+          app:showAsAction="always" android:icon="@drawable/ic_refresh" android:id="@+id/mi_refresh"/>
+    <item android:title="Choose New Size" android:layout_width="wrap_content" android:layout_height="wrap_content"
+          app:showAsAction="never" android:id="@+id/mi_new_size"/>
+    <item android:title="Create Custom game" android:layout_width="wrap_content" android:layout_height="wrap_content"
+          android:id="@+id/mi_custom" app:showAsAction="never"/>
+</menu>
