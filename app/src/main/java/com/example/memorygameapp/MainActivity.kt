@@ -4,6 +4,7 @@ import android.animation.ArgbEvaluator
 import android.app.Activity
 import android.content.Intent
 import android.graphics.Color
+import android.net.Uri
 import android.view.LayoutInflater
 import android.view.Menu
 import android.view.MenuItem
@@ -14,7 +15,6 @@ import android.widget.EditText
 import android.widget.RadioGroup
 import android.widget.TextView
 import androidx.appcompat.app.AlertDialog
-import androidx.activity.ComponentActivity
 import androidx.constraintlayout.widget.ConstraintLayout
 import com.google.android.material.snackbar.Snackbar
 import androidx.core.content.ContextCompat
@@ -22,14 +22,24 @@ import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.memorygameapp.models.BoardSize
 import com.example.memorygameapp.models.Game
-import com.example.memorygameapp.creation.CreateActivtiy
+import androidx.appcompat.app.AppCompatActivity
+import com.example.memorygameapp.Creation.CreateActivity
 import com.example.memorygameapp.utils.EXTRA_BOARD_SIZE
+//import com.example.memorygameapp.utils.EXTRA_GAME_NAME
+// import com.example.memorygameapp.models.UserImageList
 import com.example.memorygameapp.models.MemoryCard
 import com.example.memorygameapp.utils.DEFAULT_ICONS
 
+/* import com.github.jinatonic.confetti.CommonConfetti
+import com.google.firebase.analytics.ktx.analytics
+import com.google.firebase.analytics.ktx.logEvent
+import com.google.firebase.firestore.ktx.firestore
+import com.google.firebase.ktx.Firebase
+import com.google.firebase.remoteconfig.ktx.remoteConfig
+import com.squareup.picasso.Picasso */
 
 
-class MainActivity : ComponentActivity() {
+class MainActivity : AppCompatActivity() {
     companion object {
         private const val TAG = "MainActivity"
         private const val CREATE_REQUEST_CODE = 248
@@ -41,6 +51,10 @@ class MainActivity : ComponentActivity() {
     private lateinit var rvBoard: RecyclerView
     private lateinit var tvNumMoves: TextView
     private lateinit var tvNumPairs: TextView
+   /* private val db = Firebase.firestore
+    private val firebaseAnalytics = Firebase.analytics
+    private val remoteConfig = Firebase.remoteConfig */
+    private var gameName: String? = null
     private lateinit var memoryGame: Game
     private lateinit var adapter: MemoryBoardAdapter
     private var customGameImages: List<String>? = null
@@ -54,7 +68,22 @@ class MainActivity : ComponentActivity() {
         rvBoard = findViewById(R.id.rvBoard)
         tvNumMoves = findViewById(R.id.tvNumMoves)
         tvNumPairs =  findViewById(R.id.tvNumPairs)
+        /*remoteConfig.setDefaultsAsync(mapOf("about_link" to "https://www.youtube.com/rpandey1234", "scaled_height" to 250L, "compress_quality" to 60L))
+        remoteConfig.fetchAndActivate()
+            .addOnCompleteListener(this) { task ->
+                if (task.isSuccessful) {
+                    Log.i(TAG, "Fetch/activate succeeded, did config get updated? ${task.result}")
+                } else {
+                    Log.w(TAG, "Remote config fetch failed")
+                }
+            }
+        setupBoard()
+    } */
+        val intent = Intent(this, CreateActivity:: class.java)
+        intent.putExtra(EXTRA_BOARD_SIZE, BoardSize.MEDIUM)
+        startActivity(intent)
 
+        setupBoard()
     }
 
     override fun onCreateOptionsMenu(menu: Menu?):Boolean {
@@ -82,10 +111,31 @@ class MainActivity : ComponentActivity() {
                 showCreationDialog()
                 return true
             }
+            /*R.id.mi_download -> {
+                showDownloadDialog()
+                return true
+            }
+            R.id.mi_about -> {
+                firebaseAnalytics.logEvent("open_about_link", null)
+                val aboutLink = remoteConfig.getString("about_link")
+                startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(aboutLink)))
+                return true
+            }*/
+
         }
         return super.onOptionsItemSelected(item)
     }
-
+    /*override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        if (requestCode == CREATE_REQUEST_CODE && resultCode == Activity.RESULT_OK) {
+            val customGameName = data?.getStringExtra(EXTRA_GAME_NAME)
+            if (customGameName == null) {
+                Log.e(TAG, "Got null custom game from CreateActivity")
+                return
+            }
+            downloadGame(customGameName)
+        }
+        super.onActivityResult(requestCode, resultCode, data)
+    } */
     private fun showCreationDialog() {
         val boardSizeView = LayoutInflater.from(this).inflate(R.layout.dialog_board_size, null)
         val radioGroupSize = boardSizeView.findViewById<RadioGroup>(R.id.radioGroup)
@@ -95,12 +145,17 @@ class MainActivity : ComponentActivity() {
                 R.id.rbMedium -> BoardSize.MEDIUM
                 else -> BoardSize.HARD
             }
+            /* firebaseAnalytics.logEvent("creation_start_activity") {
+                param("board_size", desiredBoardSize.name)
+            } */
             // Navigate to new activity
-            val intent = Intent(this.CreateActivity:: class.kotlin)
+            val intent = Intent(this, CreateActivity:: class.java)
             intent.putExtra(EXTRA_BOARD_SIZE, desiredBoardSize)
-            startActivityForResult(intent, CREATE_REQUEST_CODE)
+            //startActivity(intent, CREATE_REQUEST_CODE)
+            startActivity(intent)
         })
     }
+
 
     private fun showNewSizeDialog() {
         val boardSizeView = LayoutInflater.from(this).inflate(R.layout.dialog_board_size, null)
@@ -116,9 +171,53 @@ class MainActivity : ComponentActivity() {
                 R.id.rbMedium -> BoardSize.MEDIUM
                 else -> BoardSize.HARD
             }
+            gameName = null
+            customGameImages = null
             setupBoard()
         })
     }
+   /* private fun showDownloadDialog() {
+        val boardDownloadView = LayoutInflater.from(this).inflate(R.layout.dialog_download_board, null)
+        showAlertDialog("Fetch memory game", boardDownloadView, View.OnClickListener {
+            val etDownloadGame = boardDownloadView.findViewById<EditText>(R.id.etDownloadGame)
+            val gameToDownload = etDownloadGame.text.toString().trim()
+            downloadGame(gameToDownload)
+        })
+    }*/
+
+   /* private fun downloadGame(customGameName: String) {
+        if (customGameName.isBlank()) {
+            Snackbar.make(clRoot, "Game name can't be blank", Snackbar.LENGTH_LONG).show()
+            Log.e(TAG, "Trying to retrieve an empty game name")
+            return
+        }
+        firebaseAnalytics.logEvent("download_game_attempt") {
+            param("game_name", customGameName)
+        }
+        db.collection("games").document(customGameName).get().addOnSuccessListener { document ->
+            val userImageList = document.toObject(UserImageList::class.java)
+            if (userImageList?.images == null)   {
+                Log.e(TAG, "Invalid custom game data from Firebase")
+                Snackbar.make(clRoot, "Sorry, we couldn't find any such game, '$customGameName'", Snackbar.LENGTH_LONG).show()
+                return@addOnSuccessListener
+            }
+            firebaseAnalytics.logEvent("download_game_success") {
+                param("game_name", customGameName)
+            }
+            val numCards = userImageList.images.size * 2
+            boardSize = BoardSize.getByValue(numCards)
+            customGameImages = userImageList.images
+            gameName = customGameName
+            // Pre-fetch the images for faster loading
+            for (imageUrl in userImageList.images) {
+                Picasso.get().load(imageUrl).fetch()
+            }
+            Snackbar.make(clRoot, "You're now playing '$customGameName'!", Snackbar.LENGTH_LONG).show()
+            setupBoard()
+        }.addOnFailureListener { exception ->
+            Log.e(TAG, "Exception when retrieving game", exception)
+        }
+    } */
 
     private fun setupBoard() {
         memoryGame = Game(boardSize, customGameImages)
@@ -181,7 +280,11 @@ class MainActivity : ComponentActivity() {
             tvNumPairs.text = "Pairs: ${memoryGame.numPairsFound} / ${boardSize.getNumPairs()}"
             if(memoryGame.haveWonGame()) {
                 Snackbar.make(clRoot, "You won! Congratulations.", Snackbar.LENGTH_LONG).show()
-                //CommanConfetti.rainingConfetti(clRoot, intArrayOf((color.YELLOW, color.GREEN, color.MAGENTA)).oneShot())
+                /*CommanConfetti.rainingConfetti(clRoot, intArrayOf((color.YELLOW, color.GREEN, color.MAGENTA)).oneShot())
+                firebaseAnalytics.logEvent("won_game") {
+                    param("game_name", gameName ?: "[default]")
+                    param("board_size", boardSize.name)
+                } */
             }
         }
         tvNumMoves.text = "Moves: ${memoryGame.getNumMoves()}"
